@@ -17,3 +17,5 @@ Bu projede C# kullanarak basit bir mesajlaşma programı yaptım.
 Visual Studio'da projeyi açıp F5'e basarak çalıştırabilirsiniz.
 
 ## Ekran Görüntüleri
+
+![Sohbet](screenshots/chat.png)
