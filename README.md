@@ -1,16 +1,19 @@
 # Chat Uygulaması
 
-C# Windows Forms ile yaptığım basit bir mesajlaşma uygulaması.
+Bu projede C# kullanarak basit bir mesajlaşma programı yaptım.
 
 ## Kullanılan Teknolojiler
 - C#
-- .NET 8
 - Windows Forms
+- .NET 8
 
 ## Özellikler
-- Temel arayüz tasarımı
+- Sunucu başlatma
+- Sunucuya bağlanma
+- Mesaj gönderme ve alma
+- Mesajları ekranda gösterme
 
 ## Çalıştırma
-Projeyi Visual Studio ile açıp F5'e basarak çalıştırabilirsiniz.
+Visual Studio'da projeyi açıp F5'e basarak çalıştırabilirsiniz.
 
 ## Ekran Görüntüleri
