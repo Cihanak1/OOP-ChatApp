@@ -19,6 +19,8 @@ public partial class MainForm : Form
     {
         InitializeComponent();
 
+        btnSend.Enabled = false;
+
         btnStartServer.Click += btnStartServer_Click;
         btnConnect.Click += btnConnect_Click;
         btnSend.Click += btnSend_Click;
@@ -28,14 +30,28 @@ public partial class MainForm : Form
 
     private async void btnStartServer_Click(object? sender, EventArgs e)
     {
+        if (string.IsNullOrWhiteSpace(txtUsername.Text))
+        {
+            MessageBox.Show("Lütfen bir kullanıcı adı girin.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            txtUsername.Focus();
+            return;
+        }
+
+        if (listener != null || isConnected)
+        {
+            MessageBox.Show("Sunucu zaten çalışıyor.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        btnStartServer.Enabled = false;
+        btnConnect.Enabled = false;
+
         try
         {
             listener = new TcpListener(IPAddress.Any, Port);
             listener.Start();
 
             lblStatus.Text = "Bağlantı Durumu: Sunucu başlatıldı, bağlantı bekleniyor...";
-            btnStartServer.Enabled = false;
-            btnConnect.Enabled = false;
 
             client = await listener.AcceptTcpClientAsync();
             NetworkStream stream = client.GetStream();
@@ -43,6 +59,7 @@ public partial class MainForm : Form
             writer = new StreamWriter(stream) { AutoFlush = true };
             isConnected = true;
 
+            btnSend.Enabled = true;
             lblStatus.Text = "Bağlantı Durumu: İstemci bağlandı!";
             lstMessages.Items.Add("[Sistem] Bir kullanıcı bağlandı.");
 
@@ -50,7 +67,13 @@ public partial class MainForm : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show("Sunucu hatası: " + ex.Message);
+            if (isConnected)
+            {
+                return;
+            }
+
+            MessageBox.Show("Sunucu hatası: " + ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            lblStatus.Text = "Bağlantı Durumu: Sunucu başlatılamadı.";
             btnStartServer.Enabled = true;
             btnConnect.Enabled = true;
         }
@@ -58,27 +81,48 @@ public partial class MainForm : Form
 
     private async void btnConnect_Click(object? sender, EventArgs e)
     {
+        if (string.IsNullOrWhiteSpace(txtUsername.Text))
+        {
+            MessageBox.Show("Lütfen bir kullanıcı adı girin.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            txtUsername.Focus();
+            return;
+        }
+
+        if (isConnected)
+        {
+            MessageBox.Show("Zaten bir bağlantı mevcut.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        btnStartServer.Enabled = false;
+        btnConnect.Enabled = false;
+        lblStatus.Text = "Bağlantı Durumu: Sunucuya bağlanılıyor...";
+
         try
         {
             client = new TcpClient();
-            lblStatus.Text = "Bağlantı Durumu: Sunucuya bağlanılıyor...";
-            btnStartServer.Enabled = false;
-            btnConnect.Enabled = false;
-
             await client.ConnectAsync("127.0.0.1", Port);
             NetworkStream stream = client.GetStream();
             reader = new StreamReader(stream);
             writer = new StreamWriter(stream) { AutoFlush = true };
             isConnected = true;
 
+            btnSend.Enabled = true;
             lblStatus.Text = "Bağlantı Durumu: Sunucuya bağlandı!";
             lstMessages.Items.Add("[Sistem] Sunucuya bağlanıldı.");
 
             MesajlariDinle();
         }
+        catch (SocketException)
+        {
+            MessageBox.Show("Sunucu bulunamadı. Lütfen önce diğer uygulamada sunucuyu başlatın.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            lblStatus.Text = "Bağlantı Durumu: Sunucuya bağlanılamadı.";
+            btnStartServer.Enabled = true;
+            btnConnect.Enabled = true;
+        }
         catch (Exception ex)
         {
-            MessageBox.Show("Bağlantı hatası: " + ex.Message);
+            MessageBox.Show("Bağlantı hatası: " + ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             lblStatus.Text = "Bağlantı Durumu: Bağlantı başarısız.";
             btnStartServer.Enabled = true;
             btnConnect.Enabled = true;
@@ -103,21 +147,33 @@ public partial class MainForm : Form
         }
         catch
         {
-            // Bağlantı koptuğunda döngü sonlanır
         }
 
-        lblStatus.Text = "Bağlantı Durumu: Bağlantı koptu.";
-        lstMessages.Items.Add("[Sistem] Bağlantı kesildi.");
         isConnected = false;
+        btnSend.Enabled = false;
+        lblStatus.Text = "Bağlantı Durumu: Bağlantı kesildi.";
+        lstMessages.Items.Add("[Sistem] Bağlantı kesildi.");
+
         btnStartServer.Enabled = true;
         btnConnect.Enabled = true;
+
+        try
+        {
+            reader?.Close();
+            writer?.Close();
+            client?.Close();
+            listener?.Stop();
+            listener = null;
+        }
+        catch
+        {
+        }
     }
 
     private async void btnSend_Click(object? sender, EventArgs e)
     {
         if (!isConnected || writer == null)
         {
-            MessageBox.Show("Önce bağlantı kurmalısınız.");
             return;
         }
 
@@ -140,7 +196,7 @@ public partial class MainForm : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show("Mesaj gönderilemedi: " + ex.Message);
+            MessageBox.Show("Mesaj gönderilemedi: " + ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
